@@ -1,7 +1,5 @@
 import Data from "./config.js";
-const searchBar = document.querySelector("#searchBar");
 const container = document.querySelector(".container");
-const cityNameContainer = document.querySelector(".city-name");
 
 const weekdays = [
   "Sunday",
@@ -12,7 +10,6 @@ const weekdays = [
   "Friday",
   "Saturday",
 ];
-console.log("hello world");
 
 const createElement = (element, attributes, children) => {
   const e = document.createElement(element);
@@ -30,10 +27,8 @@ const createElement = (element, attributes, children) => {
 };
 
 const displayData = (result) => {
-  console.log({ result });
   // Removing all child elements from Container before creating new set of elements
   while (container.firstChild) {
-    console.log(container.firstChild);
     container.removeChild(container.firstChild);
   }
 
@@ -43,9 +38,8 @@ const displayData = (result) => {
     const date = new Date();
 
     let dayOfTheWeek = weekdays[(date.getDay() + i) % 7];
-    console.log(dayOfTheWeek);
+
     const data = result.list[i];
-    console.log({ data });
 
     // Create the elements with Data
     const card = createElement("div", { class: "card" }, [
@@ -107,16 +101,18 @@ const displayData = (result) => {
   }
 };
 
-const getCityLocation = (url) => {
+const getCityLocation = async (url) => {
+  const cityNameContainer = document.querySelector(".city-name");
+  let coo;
   // Fetching first api to get the City coordinates
-  fetch(url)
+  await fetch(url)
     .then((response) => response.json())
     .then((data) => {
       const lon = data.city.coord.lon;
       const lat = data.city.coord.lat;
       cityNameContainer.innerHTML = data.city.name;
       console.log(lon, lat);
-      getDataWeather(lon, lat);
+      coo = { lon: lon, lat: lat };
     })
     .catch((error) => {
       // If there are errors, send out an error message
@@ -126,39 +122,51 @@ const getCityLocation = (url) => {
       }
       return alert("Are you sure you aren't holding your map upside down?");
     });
+
+  return coo;
 };
 
-const getDataWeather = (lon, lat) => {
+const getDataWeather = async (coord) => {
+  console.log(coord);
+  let data;
   // Fetching final data according to the coordinates
-  fetch(
+  await fetch(
     "https://api.openweathermap.org/data/2.5/forecast?lat=" +
-      lat +
+      coord.lat +
       "&lon=" +
-      lon +
+      coord.lon +
       "&appid=" +
       Data.key
   )
     .then((response) => response.json())
     .then((result) => {
-      displayData(result);
+      data = result;
       console.log(
         "Welcome to this basic weather app. this is not a product but the product of an academic exercise."
       );
     });
+
+  return data;
 };
 
-// Event will start on a keyup action
-searchBar.addEventListener("keyup", (event) => {
-  // checking the action for specific key (Enter)
-  if (event.key === "Enter") {
-    // Store target in variable
-    const thisCity = event.target.value.toLowerCase();
-    const apiUrl =
-      "https://api.openweathermap.org/data/2.5/forecast/?q=" +
-      thisCity +
-      "&appid=" +
-      Data.key;
-    event.currentTarget.value = "";
-    getCityLocation(apiUrl);
-  }
+window.addEventListener("DOMContentLoaded", () => {
+  const searchBar = document.querySelector("#searchBar");
+  // Event will start on a keyup action
+  searchBar.addEventListener("keyup", async (event) => {
+    // checking the action for specific key (Enter)
+    if (event.key === "Enter") {
+      // Store target in variable
+      const thisCity = event.target.value.toLowerCase();
+      const apiUrl =
+        "https://api.openweathermap.org/data/2.5/forecast/?q=" +
+        thisCity +
+        "&appid=" +
+        Data.key;
+      event.currentTarget.value = "";
+
+      const coord = await getCityLocation(apiUrl);
+      const result = await getDataWeather(coord);
+      displayData(result);
+    }
+  });
 });
